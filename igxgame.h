@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QVector>
 #include <memory>
+#include <QTimer>
 
 #include "planet.h"
 
@@ -21,10 +22,21 @@ public:
 
     GameBoard board() const;
 
+    void addPlayer(std::shared_ptr<Player> p);
+
+    void setMe(std::shared_ptr<Player> m);
+
+    std::shared_ptr<Player> me() const;
+
+    void moveShips(std::shared_ptr<Planet> from, std::shared_ptr<Planet> to, int numShips);
+
 signals:
 private:
     int m_numPlanets;
     GameBoard m_gameBoard;
+    QTimer m_tickTimer;
+    QVector<std::shared_ptr<Player>> m_players;
+    std::shared_ptr<Player> m_me;
 };
 
 #endif // IGXGAME_H

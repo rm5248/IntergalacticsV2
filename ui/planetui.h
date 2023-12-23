@@ -20,6 +20,11 @@ public:
 
     void paintEvent(QPaintEvent* evt);
 
+    std::shared_ptr<Planet> planet() const;
+
+private slots:
+    void updatePlanet();
+
 private:
     void paintRatio();
 

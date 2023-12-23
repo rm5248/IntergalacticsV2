@@ -25,17 +25,30 @@ public:
     void paintEvent(QPaintEvent* evt);
     void mousePressEvent(QMouseEvent* evt);
     void resizeEvent(QResizeEvent* evt);
+    void mouseMoveEvent(QMouseEvent* evt);
+
+public slots:
+    void tick();
 
 private:
     void connectPlanets(QPaintEvent* evt);
     void calculatePlanetLocations();
+    void drawSlider();
 
 private:
+    enum class FleetMoveState{
+        NothingSelected,
+        PlanetsSelected,
+    };
+
     Ui::GalaxyUI *ui;
     PlanetUI* m_fromPlanet = nullptr;
     PlanetUI* m_toPlanet = nullptr;
     IGXGame* m_game;
     GameBoardUI m_boardUI;
+    FleetMoveState m_moveState;
+    QPoint m_mouseLocation;
+    double m_shipsPercentage;
 };
 
 #endif // GALAXYUI_H

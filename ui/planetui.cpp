@@ -1,6 +1,7 @@
 #include "planetui.h"
 #include "ui_planetui.h"
 #include "planet.h"
+#include "player.h"
 
 #include <QPainter>
 
@@ -10,6 +11,9 @@ PlanetUI::PlanetUI(std::shared_ptr<Planet> planet, QWidget *parent) :
     m_planet(planet)
 {
     ui->setupUi(this);
+
+    connect(planet.get(), &Planet::shipsProduced,
+            this, &PlanetUI::updatePlanet);
 }
 
 PlanetUI::~PlanetUI()
@@ -21,28 +25,62 @@ void PlanetUI::paintEvent(QPaintEvent* evt){
     QPainter painter;
     painter.begin(this);
     painter.setRenderHint(QPainter::Antialiasing);
-//    painter.translate(width() / 2, height() / 2);
-
-    QBrush brush(QColor(128,128,128));
 
     QPoint center(width() / 2, height() / 2);
+    double radius = height() / 2 * .7;
 
-    painter.setBrush(brush);
-    painter.drawEllipse(center, (int)(width() / 2 * .66), (int)(height() / 2 * .66) );
+    QBrush planet_color_brush;
+    if(!m_planet->owner()){
+        QRadialGradient gradient(center, radius);
+        gradient.setColorAt(0, QColor(128,128,128));
+        QColor outsideColor = QColor(128,128,128);
+        outsideColor.setRed(outsideColor.red() - 80);
+        outsideColor.setGreen(outsideColor.green() - 80);
+        outsideColor.setBlue(outsideColor.blue() - 80);
+        gradient.setColorAt(1, outsideColor);
+        planet_color_brush = QBrush(gradient);
+    }else{
+        QRadialGradient gradient(center, radius);
+        gradient.setColorAt(0, m_planet->owner()->color());
+        QColor outsideColor = m_planet->owner()->color();
+        int r = outsideColor.red() - 80;
+        int g = outsideColor.green() - 80;
+        int b = outsideColor.blue() - 80;
+        outsideColor.setRed(r < 0 ? 0 : r);
+        outsideColor.setGreen(g < 0 ? 0 : g);
+        outsideColor.setBlue(b < 0 ? 0 : b);
+        gradient.setColorAt(1, outsideColor);
+        planet_color_brush = QBrush(gradient);
+    }
 
-    QBrush brush2(QColor(0, 255, 255));
+    painter.setBrush(planet_color_brush);
+    painter.drawEllipse(center, (int)radius, (int)radius );
+
+    // Draw the planet name in the owner's color
+    QFont planet_info_font = painter.font();
+    planet_info_font.setPointSize(10);
+    painter.setFont(planet_info_font);
+    QBrush planet_name_brush;
+    if(!m_planet->owner()){
+        planet_name_brush = QBrush(QColor(0xc8, 0xc8, 0xc8));
+    }else{
+        planet_name_brush = QBrush(QColor(m_planet->owner()->color()));
+    }
     QPen planetPen;
-    planetPen.setBrush(brush2);
+    planetPen.setBrush(planet_name_brush);
     painter.setPen(planetPen);
     QString name;
     name.push_back(m_planet->planetName());
     painter.drawText(0, 15, name);
 
-    QString numShips = QString::number(m_planet->numberShips());
-    QString numShipsProduced = QString::number(m_planet->numberShipsProduced());
+    // If this planet is owned, print number of ships and number of ships produced
+    if(m_planet->owner()){
+        QString numShips = QString::number(m_planet->numberShips());
+        QString numShipsProduced = QString::number(m_planet->numberShipsProduced());
 
-    painter.drawText(0, 30, numShipsProduced);
-    painter.drawText(15, 15, numShips);
+        painter.drawText(0, 30, numShipsProduced);
+        painter.drawText(15, 15, numShips);
+    }
 
     painter.end();
 
@@ -86,4 +124,12 @@ void PlanetUI::paintRatio(){
     painter.fillRect(topLeftGraph.x(), topLeftGraph.y(), 4, graphHeightInPx, HIGHCOLOUR);
     painter.fillRect(topLeftGraph.x(), std::max(midRatioLocation, topLeftGraph.y()), 4, graphHeightInPx, MIDCOLOUR);
     painter.fillRect(topLeftGraph.x(), std::max(bottomRatioLocation, topLeftGraph.y()), 4, graphHeightInPx, LOWCOLOUR);
+}
+
+void PlanetUI::updatePlanet(){
+    update();
+}
+
+std::shared_ptr<Planet> PlanetUI::planet() const{
+    return m_planet;
 }

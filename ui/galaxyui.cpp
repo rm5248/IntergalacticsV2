@@ -5,6 +5,11 @@
 #include <QPainter>
 #include <QMouseEvent>
 #include <QPen>
+#include <QSlider>
+#include <QLayout>
+
+static const int SLIDER_WIDTH = 20;
+static const int SLIDER_HEIGHT = 60;
 
 GalaxyUI::GalaxyUI(QWidget *parent) :
     QWidget(parent),
@@ -17,6 +22,12 @@ GalaxyUI::GalaxyUI(QWidget *parent) :
             m_boardUI[x][y] = nullptr;
         }
     }
+
+    m_moveState = FleetMoveState::NothingSelected;
+
+    setMouseTracking(true);
+
+    setMinimumWidth(500 + SLIDER_WIDTH);
 }
 
 GalaxyUI::~GalaxyUI()
@@ -122,7 +133,7 @@ void GalaxyUI::paintEvent(QPaintEvent* evt){
         QPoint to( m_toPlanet->x() + m_toPlanet->width() / 2,
                      m_toPlanet->y() + m_toPlanet->height() / 2);
 
-        qDebug() << from << "->" << to;
+//        qDebug() << from << "->" << to;
 
         // TODO figure out why the java code works and this doesn't
 //        connectPlanets(evt);
@@ -135,24 +146,48 @@ void GalaxyUI::paintEvent(QPaintEvent* evt){
         painter.drawLine(from, to);
     }
 
+    painter.end();
+    drawSlider();
 }
 
 void GalaxyUI::mousePressEvent(QMouseEvent* evt){
     qDebug() << "mouse press";
 
+    if(evt->button() == Qt::RightButton){
+        m_moveState = FleetMoveState::NothingSelected;
+        m_fromPlanet = nullptr;
+        m_toPlanet = nullptr;
+        update();
+        return;
+    }
+
+    if(m_moveState == FleetMoveState::PlanetsSelected){
+        // Spawn a fleet and move it!
+        int numShips = m_fromPlanet->planet()->numberShips() * m_shipsPercentage;
+
+        qDebug() << "move fleet " << numShips;
+        m_moveState = FleetMoveState::NothingSelected;
+        m_fromPlanet = nullptr;
+        m_toPlanet = nullptr;
+
+        update();
+        return;
+    }
+
     QWidget* widget = childAt(evt->pos());
     PlanetUI* planet = qobject_cast<PlanetUI*>(widget);
     if(planet){
-        qDebug() << "has planet!";
         if(!m_fromPlanet){
-            m_fromPlanet = planet;
-        }else{
+            if((planet->planet()->owner() == m_game->me())){
+                // We can only send ships from planets that we own
+                m_fromPlanet = planet;
+            }
+        }else if(planet != m_fromPlanet){
             m_toPlanet = planet;
+            m_moveState = FleetMoveState::PlanetsSelected;
         }
 
         update();
-    }else{
-        qDebug() << "nothing underneath";
     }
 }
 
@@ -180,10 +215,11 @@ void GalaxyUI::setIGXGame(IGXGame* game){
 
 void GalaxyUI::resizeEvent(QResizeEvent* evt){
     // Make sure that we are square, otherwise it looks weird.
+    // Note: width needs to take into account the width of the slider
     int size = std::min(width(), height());
 
     QRect geomoery = geometry();
-    geomoery.setWidth(size);
+    geomoery.setWidth(size + SLIDER_WIDTH);
     geomoery.setHeight(size);
 
     setGeometry(geomoery);
@@ -193,7 +229,7 @@ void GalaxyUI::resizeEvent(QResizeEvent* evt){
 }
 
 void GalaxyUI::calculatePlanetLocations(){
-    const int gridXSize = width() / 16;
+    const int gridXSize = (width() - SLIDER_WIDTH) / 16;
     const int gridYSize = height() / 16;
 
     // Figure out where the planets should be based on the UI size
@@ -212,4 +248,46 @@ void GalaxyUI::calculatePlanetLocations(){
             uiElem->move(xLocCenter - (gridXSize / 2), yLocCenter - (gridYSize / 2));
         }
     }
+}
+
+void GalaxyUI::drawSlider(){
+    QPainter painter;
+    painter.begin(this);
+
+    // Always draw the line the slider slides on
+    QBrush lineBrush(QColor(255, 255, 255));
+    QPen pen;
+    pen.setWidth(1);
+    pen.setBrush(lineBrush);
+    painter.setPen(pen);
+    painter.drawLine(width() - (SLIDER_WIDTH / 2), 0,
+                     width() - (SLIDER_WIDTH / 2), height());
+
+    if(m_moveState != FleetMoveState::PlanetsSelected){
+        return;
+    }
+
+    // Draw the slider depending on where the mouse is
+    QPoint sliderCenterPoint(width() - (SLIDER_WIDTH / 2), m_mouseLocation.y());
+    QPoint sliderTopLeft(sliderCenterPoint.x() - (SLIDER_WIDTH / 2), sliderCenterPoint.y() - (SLIDER_HEIGHT / 2));
+    QPoint sliderBottomRight(sliderCenterPoint.x() + (SLIDER_WIDTH / 2), sliderCenterPoint.y() + (SLIDER_HEIGHT / 2));
+
+    painter.fillRect(QRect(sliderTopLeft, sliderBottomRight), lineBrush);
+}
+
+void GalaxyUI::mouseMoveEvent(QMouseEvent* evt){
+    m_mouseLocation = evt->pos();
+
+    m_shipsPercentage = 1.0 - ((double)m_mouseLocation.y() / (double)height());
+    if(m_shipsPercentage > .95){
+        m_shipsPercentage = 1.0;
+    }
+
+    if(m_moveState == FleetMoveState::PlanetsSelected){
+        update();
+    }
+}
+
+void GalaxyUI::tick(){
+    update();
 }

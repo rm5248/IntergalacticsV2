@@ -21,6 +21,7 @@ set(PROJECT_SOURCES
         ui/galaxyui.h ui/galaxyui.cpp ui/galaxyui.ui
         planet.h planet.cpp
         igxgame.h igxgame.cpp
+        player.h player.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
