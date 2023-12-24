@@ -22,6 +22,7 @@ set(PROJECT_SOURCES
         planet.h planet.cpp
         igxgame.h igxgame.cpp
         player.h player.cpp
+        fleet.h fleet.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

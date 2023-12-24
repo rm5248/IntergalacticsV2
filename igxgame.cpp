@@ -1,4 +1,5 @@
 #include "igxgame.h"
+#include "fleet.h"
 #include <QRandomGenerator>
 #include <QDebug>
 
@@ -74,5 +75,43 @@ std::shared_ptr<Player> IGXGame::me() const{
 }
 
 void IGXGame::moveShips(std::shared_ptr<Planet> from, std::shared_ptr<Planet> to, int numShips){
+    double distance = distanceBetweenPlanets(from, to);
+    std::shared_ptr<Fleet> f = std::make_shared<Fleet>( from->owner(), from, to, numShips, from->planetRatio(), distance);
 
+    m_fleets.append(f);
+
+    connect(&m_tickTimer, &QTimer::timeout,
+            f.get(), &Fleet::tick);
+    connect(f.get(), &Fleet::arrived,
+            this, &IGXGame::fleetArrived);
+
+    emit fleetSpawned(from, f);
+}
+
+double IGXGame::distanceBetweenPlanets(std::shared_ptr<Planet> from, std::shared_ptr<Planet> to){
+    int p1X;
+    int p1Y;
+    int p2X;
+    int p2Y;
+    double distance;
+
+    for(int x = 0; x < 16; x++){
+        for(int y = 0; y < 16; y++){
+            if(m_gameBoard[x][y] == from){
+                p1X = x;
+                p1Y = y;
+            }else if(m_gameBoard[x][y] == to){
+                p2X = x;
+                p2Y = y;
+            }
+        }
+    }
+
+    distance = std::sqrt(std::pow(p2X - p1X, 2) + std::pow(p2Y - p1Y, 2));
+
+    return distance;
+}
+
+void IGXGame::fleetArrived(){
+    // Tell the
 }

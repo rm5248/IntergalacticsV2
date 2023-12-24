@@ -19,6 +19,10 @@ public:
 
     void setIGXGame(IGXGame* game);
 
+private slots:
+    void selectingShips(int numShips);
+    void doneSelectingShips();
+
 private:
     Ui::MainWindow *ui;
     IGXGame* m_game;

@@ -163,9 +163,9 @@ void GalaxyUI::mousePressEvent(QMouseEvent* evt){
 
     if(m_moveState == FleetMoveState::PlanetsSelected){
         // Spawn a fleet and move it!
-        int numShips = m_fromPlanet->planet()->numberShips() * m_shipsPercentage;
 
-        qDebug() << "move fleet " << numShips;
+        qDebug() << "move fleet " << m_shipsToSend;
+        emit doneSelectingShips();
         m_moveState = FleetMoveState::NothingSelected;
         m_fromPlanet = nullptr;
         m_toPlanet = nullptr;
@@ -278,12 +278,14 @@ void GalaxyUI::drawSlider(){
 void GalaxyUI::mouseMoveEvent(QMouseEvent* evt){
     m_mouseLocation = evt->pos();
 
-    m_shipsPercentage = 1.0 - ((double)m_mouseLocation.y() / (double)height());
-    if(m_shipsPercentage > .95){
-        m_shipsPercentage = 1.0;
+    double shipsPercentage = 1.0 - ((double)m_mouseLocation.y() / (double)height());
+    if(shipsPercentage > .95){
+        shipsPercentage = 1.0;
     }
 
     if(m_moveState == FleetMoveState::PlanetsSelected){
+        m_shipsToSend = m_fromPlanet->planet()->numberShips() * shipsPercentage;
+        emit selectingShips(m_shipsToSend);
         update();
     }
 }

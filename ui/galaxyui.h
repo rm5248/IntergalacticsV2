@@ -27,6 +27,10 @@ public:
     void resizeEvent(QResizeEvent* evt);
     void mouseMoveEvent(QMouseEvent* evt);
 
+signals:
+    void selectingShips(int numShips);
+    void doneSelectingShips();
+
 public slots:
     void tick();
 
@@ -48,7 +52,7 @@ private:
     GameBoardUI m_boardUI;
     FleetMoveState m_moveState;
     QPoint m_mouseLocation;
-    double m_shipsPercentage;
+    int m_shipsToSend;
 };
 
 #endif // GALAXYUI_H
